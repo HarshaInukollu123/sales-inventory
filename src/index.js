@@ -7,9 +7,10 @@ import { makeServer } from './mock/server';
 import ProductList from './features/products/ProductList';
 
 // Start MirageJS server in development
-if (process.env.NODE_ENV === 'development') {
+if (typeof window !== 'undefined') {
   makeServer();
 }
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
