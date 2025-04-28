@@ -4,7 +4,7 @@ import './index.css';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { makeServer } from './mock/server';
-import ProductList from './features/products/ProductList';
+import App from './App';
 
 // Start MirageJS server in development
 if (typeof window !== 'undefined') {
@@ -16,7 +16,7 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <Provider store={store}>
   <React.StrictMode>
-    <ProductList />
+    <App />
   </React.StrictMode>
   </Provider>
 );
