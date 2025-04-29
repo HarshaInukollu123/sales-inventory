@@ -23,6 +23,12 @@ const Navbar = () => {
             <Link to="/products" className={`text-sm ${isActive('/products')}`}>
               Products
             </Link>
+            <Link to="/analytics" className={`text-sm ${isActive('/analytics')}`}>
+              Analytics
+            </Link>
+            <Link to="/sales" className={`text-sm ${isActive('/sales')}`}>
+              Sales
+            </Link>
           </div>
         </div>
       </div>
