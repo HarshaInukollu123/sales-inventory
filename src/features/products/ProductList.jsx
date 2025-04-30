@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState , useCallback} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchProducts,
@@ -13,9 +13,13 @@ import {
   selectProductError,
 } from './selector'; 
 
-import CategoryFilter from './categoryFilter';
+// import CategoryFilter from './categoryFilter';
 import ProductForm from './productForm';
 import Modal from '../../components/Modal';
+import ProductFilters from './ProductFilters';
+import ReportExport from '../../components/ReportExcel';
+
+
 
 const categoryColors = {
   Electronics: 'bg-blue-100 text-blue-700',
@@ -25,15 +29,24 @@ const categoryColors = {
   Books: 'bg-purple-100 text-purple-700',
 };
 
+const productColumns = [
+  { key: 'name', label: 'Product Name' },
+  { key: 'category', label: 'Category' },
+  { key: 'price', label: 'Price ($)' },
+  { key: 'quantity', label: 'Stock Qty' },
+];
+
 const ProductList = () => {
   const dispatch = useDispatch();
   const products = useSelector(selectAllProducts);
   const status = useSelector(selectProductStatus);
   const error = useSelector(selectProductError);
 
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  // const [selectedCategory, setSelectedCategory] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [filtered, setFiltered] = useState(products);
+
 
   useEffect(() => {
     if (status === 'idle') {
@@ -41,10 +54,39 @@ const ProductList = () => {
     }
   }, [dispatch, status]);
 
-  const filteredProducts = useMemo(() => {
-    if (selectedCategory === 'All') return products;
-    return products.filter((p) => p.category === selectedCategory);
-  }, [products, selectedCategory]);
+  useEffect(() => {
+    setFiltered(products);
+  }, [products]);
+  
+
+
+
+  const applyFilters = useCallback(({ search, category, minPrice, maxPrice }) => {
+    let result = [...products];
+  
+    if (search)
+      result = result.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase())
+      );
+  
+    if (category !== 'All')
+      result = result.filter((p) => p.category === category);
+  
+    if (minPrice)
+      result = result.filter((p) => p.price >= parseFloat(minPrice));
+  
+    if (maxPrice)
+      result = result.filter((p) => p.price <= parseFloat(maxPrice));
+  
+    setFiltered(result);
+  }, [products]);
+  
+  
+
+  // const filteredProducts = useMemo(() => {
+  //   if (selectedCategory === 'All') return products;
+  //   return products.filter((p) => p.category === selectedCategory);
+  // }, [products, selectedCategory]);
 
   const openAddModal = () => {
     setEditingProduct(null);
@@ -89,10 +131,18 @@ const ProductList = () => {
         </button>
       </div>
 
-      <CategoryFilter
+      {/* <CategoryFilter
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
+      /> */}
+      <ReportExport
+        data={products}
+        columns={productColumns}
+        filename="ProductInventoryReport"
+        type="product"
       />
+      <ProductFilters onFilter={applyFilters} />
+ 
 
       <div className="overflow-x-auto rounded shadow border bg-white">
         <table className="min-w-full divide-y divide-gray-200">
@@ -106,7 +156,7 @@ const ProductList = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-gray-700">
-            {filteredProducts.map((product) => (
+            {filtered.map((product) => (
               <tr key={product.id} className="hover:bg-gray-50 transition">
                 <td className="px-6 py-4 whitespace-nowrap font-medium">{product.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
