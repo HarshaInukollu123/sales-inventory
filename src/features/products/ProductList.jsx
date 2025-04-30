@@ -1,25 +1,20 @@
-import React, { useEffect, useState , useCallback} from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchProducts,
   deleteProduct,
   addProduct,
   updateProduct,
-} from './productSlice'; 
-
+} from './productSlice';
 import {
   selectAllProducts,
   selectProductStatus,
   selectProductError,
-} from './selector'; 
-
-// import CategoryFilter from './categoryFilter';
+} from './selector';
 import ProductForm from './productForm';
 import Modal from '../../components/Modal';
 import ProductFilters from './ProductFilters';
 import ReportExport from '../../components/ReportExcel';
-
-
 
 const categoryColors = {
   Electronics: 'bg-blue-100 text-blue-700',
@@ -42,11 +37,11 @@ const ProductList = () => {
   const status = useSelector(selectProductStatus);
   const error = useSelector(selectProductError);
 
-  // const [selectedCategory, setSelectedCategory] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [filtered, setFiltered] = useState(products);
-
+  const [filtered, setFiltered] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (status === 'idle') {
@@ -56,37 +51,32 @@ const ProductList = () => {
 
   useEffect(() => {
     setFiltered(products);
+    setCurrentPage(1);
   }, [products]);
-  
 
+  const applyFilters = useCallback(
+    ({ search, category, minPrice, maxPrice }) => {
+      let result = [...products];
 
+      if (search)
+        result = result.filter((p) =>
+          p.name.toLowerCase().includes(search.toLowerCase())
+        );
 
-  const applyFilters = useCallback(({ search, category, minPrice, maxPrice }) => {
-    let result = [...products];
-  
-    if (search)
-      result = result.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase())
-      );
-  
-    if (category !== 'All')
-      result = result.filter((p) => p.category === category);
-  
-    if (minPrice)
-      result = result.filter((p) => p.price >= parseFloat(minPrice));
-  
-    if (maxPrice)
-      result = result.filter((p) => p.price <= parseFloat(maxPrice));
-  
-    setFiltered(result);
-  }, [products]);
-  
-  
+      if (category !== 'All')
+        result = result.filter((p) => p.category === category);
 
-  // const filteredProducts = useMemo(() => {
-  //   if (selectedCategory === 'All') return products;
-  //   return products.filter((p) => p.category === selectedCategory);
-  // }, [products, selectedCategory]);
+      if (minPrice)
+        result = result.filter((p) => p.price >= parseFloat(minPrice));
+
+      if (maxPrice)
+        result = result.filter((p) => p.price <= parseFloat(maxPrice));
+
+      setFiltered(result);
+      setCurrentPage(1);
+    },
+    [products]
+  );
 
   const openAddModal = () => {
     setEditingProduct(null);
@@ -111,6 +101,12 @@ const ProductList = () => {
     setIsModalOpen(false);
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProducts = filtered.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
   if (status === 'loading') {
     return <div className="text-center text-lg mt-10">Loading products...</div>;
   }
@@ -120,7 +116,7 @@ const ProductList = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold text-gray-800">📦 Product Inventory</h1>
         <button
@@ -131,18 +127,14 @@ const ProductList = () => {
         </button>
       </div>
 
-      {/* <CategoryFilter
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-      /> */}
       <ReportExport
-        data={products}
+        data={filtered}
         columns={productColumns}
         filename="ProductInventoryReport"
         type="product"
       />
+
       <ProductFilters onFilter={applyFilters} />
- 
 
       <div className="overflow-x-auto rounded shadow border bg-white">
         <table className="min-w-full divide-y divide-gray-200">
@@ -156,19 +148,19 @@ const ProductList = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-gray-700">
-            {filtered.map((product) => (
+            {currentProducts.map((product) => (
               <tr key={product.id} className="hover:bg-gray-50 transition">
-                <td className="px-6 py-4 whitespace-nowrap font-medium">{product.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 font-medium">{product.name}</td>
+                <td className="px-6 py-4">
                   <span
                     className={`inline-block px-2 py-1 text-xs font-semibold rounded ${categoryColors[product.category]}`}
                   >
                     {product.category}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">${product.price}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{product.quantity}</td>
-                <td className="px-6 py-4 whitespace-nowrap space-x-3">
+                <td className="px-6 py-4">${product.price}</td>
+                <td className="px-6 py-4">{product.quantity}</td>
+                <td className="px-6 py-4 space-x-3">
                   <button
                     onClick={() => openEditModal(product)}
                     className="text-sm text-blue-600 hover:underline"
@@ -184,9 +176,38 @@ const ProductList = () => {
                 </td>
               </tr>
             ))}
+            {currentProducts.length === 0 && (
+              <tr>
+                <td colSpan="5" className="text-center py-4 text-gray-500">
+                  No products found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6 items-center gap-2">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            ◀️ Prev
+          </button>
+          <span className="px-4 py-2 text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            Next ▶️
+          </button>
+        </div>
+      )}
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
