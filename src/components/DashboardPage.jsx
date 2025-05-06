@@ -1,73 +1,82 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchSales } from '../features/sales/salesSlice';
 import { fetchProducts } from '../features/products/productSlice';
-import { selectAllSales, selectTotalRevenue } from '../features/sales/salesSelector';
+import { selectAllSales } from '../features/sales/salesSelector';
 import { selectAllProducts } from '../features/products/selector';
+import SalesChartsPage from '../features/sales/SalesChartPage';
 
 const DashboardPage = () => {
   const dispatch = useDispatch();
   const sales = useSelector(selectAllSales);
   const products = useSelector(selectAllProducts);
-  const totalRevenue = useSelector(selectTotalRevenue);
 
   useEffect(() => {
-    dispatch(fetchProducts());
     dispatch(fetchSales());
+    dispatch(fetchProducts());
   }, [dispatch]);
 
-  const totalProducts = products.length;
-  const lowStockCount = products.filter((p) => p.quantity <= 10).length;
+  const totalRevenue = useMemo(() => {
+    return sales.reduce((acc, sale) => acc + sale.totalPrice, 0);
+  }, [sales]);
 
-  const topProducts = {};
-  sales.forEach(({ productId, quantity }) => {
-    topProducts[productId] = (topProducts[productId] || 0) + quantity;
-  });
+  const lowStockCount = useMemo(() => {
+    return products.filter((p) => p.quantity <= 10).length;
+  }, [products]);
 
-  const topProductList = Object.entries(topProducts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([productId, qty]) => {
-      const product = products.find((p) => p.id === productId);
-      return { name: product?.name || 'Unknown', quantity: qty };
+  const topProducts = useMemo(() => {
+    const countMap = {};
+    sales.forEach(({ productId, quantity }) => {
+      const id = String(productId);
+      countMap[id] = (countMap[id] || 0) + quantity;
     });
+    return Object.entries(countMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([productId, qty]) => {
+        const product = products.find((p) => String(p.id) === productId);
+        return {
+          name: product?.name || `Product #${productId}`,
+          quantity: qty,
+        };
+      });
+  }, [sales, products]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 bg-gray-50">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">📊 Business Dashboard</h1>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <KpiCard title="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} color="green" icon="💰" />
-        <KpiCard title="Total Products" value={totalProducts} color="blue" icon="📦" />
-        <KpiCard title="Low Stock Items" value={lowStockCount} color="red" icon="⚠️" />
-        <KpiCard title="Total Sales" value={sales.length} color="indigo" icon="🛒" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        <KpiCard icon="💰" title="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} color="green" />
+        <KpiCard icon="📦" title="Total Products" value={products.length} color="blue" />
+        <KpiCard icon="⚠️" title="Low Stock Items" value={lowStockCount} color="red" />
+        <KpiCard icon="🧾" title="Total Sales" value={sales.length} color="indigo" />
       </div>
 
-      {/* Top Products Section */}
-      <div className="bg-white rounded shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">🏆 Top 5 Selling Products</h2>
-        {topProductList.length === 0 ? (
-          <p className="text-gray-500 text-sm">No sales yet.</p>
-        ) : (
-          <ul className="divide-y divide-gray-200">
-            {topProductList.map((p, index) => (
-              <li key={index} className="flex justify-between py-2">
-                <span className="text-gray-700 font-medium">
-                  #{index + 1} {p.name}
-                </span>
-                <span className="text-gray-500 text-sm">{p.quantity} units sold</span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="mt-10">
+        <SalesChartsPage />
       </div>
+      
+      {/* Top Selling Products List */}
+      <div className="bg-white rounded shadow p-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">🏆 Top 10 Selling Products</h2>
+        <ul className="divide-y divide-gray-200">
+          {topProducts.map((p, index) => (
+            <li key={index} className="flex justify-between py-2">
+              <span className="text-gray-700 font-medium">#{index + 1} {p.name}</span>
+              <span className="text-gray-500 text-sm">{p.quantity} units sold</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      
     </div>
   );
 };
 
-// 💡 Reusable KPI Card
-const KpiCard = ({ title, value, color, icon }) => {
+const KpiCard = ({ icon, title, value, color }) => {
   const borderColor = {
     green: 'border-green-500',
     blue: 'border-blue-500',

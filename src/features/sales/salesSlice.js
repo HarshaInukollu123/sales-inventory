@@ -1,10 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// Fetch Sales
+// ✅ Fetch Sales
 export const fetchSales = createAsyncThunk('sales/fetchSales', async () => {
   const response = await axios.get('/api/sales');
-  return response.data;
+  return response.data.sales; // ✅ FIXED: correct key
 });
 
 const salesSlice = createSlice({
@@ -24,7 +24,11 @@ const salesSlice = createSlice({
       .addCase(fetchSales.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.sales = action.payload;
-        state.totalRevenue = action.payload.reduce((sum, sale) => sum + sale.totalPrice, 0);
+
+        // ✅ Protect against unexpected null/undefined values
+        state.totalRevenue = Array.isArray(action.payload)
+          ? action.payload.reduce((sum, sale) => sum + sale.totalPrice, 0)
+          : 0;
       })
       .addCase(fetchSales.rejected, (state, action) => {
         state.status = 'failed';

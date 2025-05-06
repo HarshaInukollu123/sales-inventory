@@ -4,7 +4,7 @@ import Home from './components/Home';
 import ProductList from './features/products/ProductList';
 import Navbar from './components/Navbar';
 import Analytics from './features/products/Analytics';
-import SalesChartsPage from './features/sales/SalesChartPage';
+// import SalesChartsPage from './features/sales/SalesChartPage';
 
 const App = () => {
   return (
@@ -14,7 +14,7 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<ProductList />} />
         <Route path="/analytics" element={<Analytics />} />
-        <Route path="/sales" element={<SalesChartsPage />} />
+        {/* <Route path="/sales" element={<SalesChartsPage />} /> */}
       </Routes>
     </Router>
   );

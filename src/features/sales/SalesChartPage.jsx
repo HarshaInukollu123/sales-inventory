@@ -11,14 +11,12 @@ import {
 import ReportExport from '../../components/ReportExcel';
 import { selectAllSales } from './salesSelector';
 
-
 const salesColumns = [
   { key: 'productId', label: 'Product ID' },
   { key: 'quantity', label: 'Quantity' },
   { key: 'totalPrice', label: 'Total ($)' },
   { key: 'date', label: 'Date' },
 ];
-
 
 const SalesChartsPage = () => {
   const dispatch = useDispatch();
@@ -31,17 +29,35 @@ const SalesChartsPage = () => {
     if (productsStatus === 'idle') dispatch(fetchProducts());
   }, [dispatch, salesStatus, productsStatus]);
 
+  // Loading
+  if (salesStatus === 'loading' || productsStatus === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-lg text-gray-600">
+        Loading charts...
+      </div>
+    );
+  }
+
+  if (salesStatus === 'failed' || productsStatus === 'failed') {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500">
+        Failed to load sales or product data.
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 min-h-screen bg-gray-50">
+    <div className="p-6 min-h-screen bg-gray-50 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">📊 Sales Analytics</h1>
+
       <ReportExport
         data={sales}
         columns={salesColumns}
         filename="SalesReport"
         type="sales"
-        />
+      />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <DailyRevenueChart />
         <SalesByCategoryChart />
         <TopSellingProductsChart />

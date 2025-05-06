@@ -1,35 +1,39 @@
-import React from 'react';
-import { Bar } from 'react-chartjs-2';
+import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { selectAllSales } from './salesSelector';
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Title } from 'chart.js';
-
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Title);
+import { selectAllSales } from '../sales/salesSelector';
+import { Line } from 'react-chartjs-2';
+import 'chart.js/auto';
 
 const DailyRevenueChart = () => {
   const sales = useSelector(selectAllSales);
 
-  const revenueByDate = {};
-  sales.forEach(({ date, totalPrice }) => {
-    const day = new Date(date).toLocaleDateString();
-    revenueByDate[day] = (revenueByDate[day] || 0) + totalPrice;
-  });
+  const dailyRevenueData = useMemo(() => {
+    const dateMap = {};
 
-  const data = {
-    labels: Object.keys(revenueByDate),
-    datasets: [
-      {
-        label: 'Revenue ($)',
-        data: Object.values(revenueByDate),
-        backgroundColor: '#3B82F6',
-      },
-    ],
-  };
+    sales.forEach(({ date, totalPrice }) => {
+      const day = new Date(date).toISOString().split('T')[0];
+      dateMap[day] = (dateMap[day] || 0) + totalPrice;
+    });
+
+    const sortedDates = Object.keys(dateMap).sort();
+    return {
+      labels: sortedDates,
+      datasets: [
+        {
+          label: 'Daily Revenue',
+          data: sortedDates.map((d) => dateMap[d]),
+          fill: true,
+          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+        },
+      ],
+    };
+  }, [sales]);
 
   return (
-    <div className="bg-white p-4 rounded shadow">
-      <h2 className="text-lg font-semibold mb-2">📅 Daily Revenue</h2>
-      <Bar data={data} />
+    <div className="bg-white rounded shadow p-6">
+      <h2 className="text-lg font-semibold text-gray-700 mb-4">📆 Daily Revenue Trend</h2>
+      <Line data={dailyRevenueData} />
     </div>
   );
 };

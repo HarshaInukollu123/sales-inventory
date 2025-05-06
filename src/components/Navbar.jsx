@@ -18,7 +18,7 @@ const Navbar = () => {
           </div>
           <div className="flex space-x-6">
             <Link to="/" className={`text-sm ${isActive('/')}`}>
-              Home
+              Dashboard
             </Link>
             <Link to="/products" className={`text-sm ${isActive('/products')}`}>
               Products
@@ -26,9 +26,9 @@ const Navbar = () => {
             <Link to="/analytics" className={`text-sm ${isActive('/analytics')}`}>
               Analytics
             </Link>
-            <Link to="/sales" className={`text-sm ${isActive('/sales')}`}>
+            {/* <Link to="/sales" className={`text-sm ${isActive('/sales')}`}>
               Sales
-            </Link>
+            </Link> */}
           </div>
         </div>
       </div>

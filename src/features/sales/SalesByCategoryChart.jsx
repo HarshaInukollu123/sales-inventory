@@ -1,38 +1,47 @@
-import React from 'react';
-import { Pie } from 'react-chartjs-2';
+import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { selectAllSales } from './salesSelector';
+import { selectAllSales } from '../sales/salesSelector';
 import { selectAllProducts } from '../products/selector';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-
-ChartJS.register(ArcElement, Tooltip, Legend);
+import { Doughnut } from 'react-chartjs-2';
 
 const SalesByCategoryChart = () => {
   const sales = useSelector(selectAllSales);
   const products = useSelector(selectAllProducts);
 
-  const categoryTotals = {};
+  const categoryRevenueData = useMemo(() => {
+    const categoryMap = {};
 
-  sales.forEach(({ productId, totalPrice }) => {
-    const product = products.find((p) => p.id === productId);
-    if (!product) return;
-    categoryTotals[product.category] = (categoryTotals[product.category] || 0) + totalPrice;
-  });
+    sales.forEach(({ productId, totalPrice }) => {
+        const product = products.find((p) => String(p.id) === String(productId));
+        if (!product) return;
+      categoryMap[product.category] = (categoryMap[product.category] || 0) + totalPrice;
+    });
 
-  const data = {
-    labels: Object.keys(categoryTotals),
-    datasets: [
-      {
-        data: Object.values(categoryTotals),
-        backgroundColor: ['#60A5FA', '#F87171', '#34D399', '#FBBF24', '#A78BFA'],
-      },
-    ],
-  };
+    const labels = Object.keys(categoryMap);
+    const values = labels.map((key) => categoryMap[key]);
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Revenue by Category',
+          data: values,
+          backgroundColor: [
+            '#3b82f6',
+            '#ec4899',
+            '#f59e0b',
+            '#10b981',
+            '#8b5cf6',
+          ],
+        },
+      ],
+    };
+  }, [sales, products]);
 
   return (
-    <div className="bg-white p-4 rounded shadow">
-      <h2 className="text-lg font-semibold mb-2">📂 Revenue by Category</h2>
-      <Pie data={data} />
+    <div className="bg-white rounded shadow p-6">
+      <h2 className="text-lg font-semibold text-gray-700 mb-4"> Revenue by Category</h2>
+      <Doughnut data={categoryRevenueData} />
     </div>
   );
 };
