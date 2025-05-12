@@ -10,36 +10,38 @@ const AnalyticsPage = () => {
   const sales = useSelector(selectAllSales);
   const products = useSelector(selectAllProducts);
 
-  const enrichedSales = useMemo(
-    () =>
-      sales.map((sale) => {
-        const product = products.find((p) => String(p.id) === String(sale.productId));
-        return {
-          ...sale,
-          productName: product?.name || `#${sale.productId}`,
-          category: product?.category || 'Unknown',
-        };
-      }),
-    [sales, products]
-  );
+  const productMap = useMemo(() => {
+    const map = {};
+    products.forEach((p) => {
+      map[String(p.id)] = p;
+    });
+    return map;
+  }, [products]);
+
+  const enrichedSales = useMemo(() =>
+    sales.map((sale) => {
+      const product = productMap[String(sale.productId)];
+      return {
+        ...sale,
+        productName: product?.name || `#${sale.productId}`,
+        category: product?.category || 'Unknown',
+      };
+    }), [sales, productMap]);
 
   // Group revenue by month
   const monthlyRevenueData = useMemo(() => {
     const monthMap = {};
-    enrichedSales.forEach(({ date, totalPrice }) => {
+    for (const { date, totalPrice } of enrichedSales) {
       const month = new Date(date).toLocaleString('default', { month: 'short', year: 'numeric' });
       monthMap[month] = (monthMap[month] || 0) + totalPrice;
-    });
-
+    }
     const labels = Object.keys(monthMap);
-    const data = labels.map((m) => monthMap[m]);
-
     return {
       labels,
       datasets: [
         {
           label: 'Monthly Revenue',
-          data,
+          data: labels.map((m) => monthMap[m]),
           backgroundColor: 'rgba(59,130,246,0.6)',
         },
       ],
@@ -49,19 +51,19 @@ const AnalyticsPage = () => {
   // Category growth over time (cumulative revenue)
   const categoryGrowthData = useMemo(() => {
     const map = {};
-    enrichedSales.forEach(({ date, totalPrice, category }) => {
-      const key = new Date(date).toISOString().split('T')[0];
+    const allDates = new Set();
+    for (const { date, totalPrice, category } of enrichedSales) {
+      const day = new Date(date).toISOString().split('T')[0];
+      allDates.add(day);
       if (!map[category]) map[category] = {};
-      map[category][key] = (map[category][key] || 0) + totalPrice;
-    });
-
-    const allDates = Array.from(new Set(enrichedSales.map(s => new Date(s.date).toISOString().split('T')[0]))).sort();
-
+      map[category][day] = (map[category][day] || 0) + totalPrice;
+    }
+    const sortedDates = Array.from(allDates).sort();
     return {
-      labels: allDates,
-      datasets: Object.entries(map).map(([cat, values]) => ({
+      labels: sortedDates,
+      datasets: Object.entries(map).map(([cat, dayMap]) => ({
         label: cat,
-        data: allDates.map(date => values[date] || 0),
+        data: sortedDates.map((d) => dayMap[d] || 0),
         fill: true,
       })),
     };

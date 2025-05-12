@@ -16,6 +16,12 @@ const DashboardPage = () => {
     dispatch(fetchProducts());
   }, [dispatch]);
 
+  const productMap = useMemo(() => {
+    const map = {};
+    products.forEach(p => map[String(p.id)] = p);
+    return map;
+  }, [products]);
+
   const totalRevenue = useMemo(() => {
     return sales.reduce((acc, sale) => acc + sale.totalPrice, 0);
   }, [sales]);
@@ -34,19 +40,18 @@ const DashboardPage = () => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
       .map(([productId, qty]) => {
-        const product = products.find((p) => String(p.id) === productId);
+        const product = productMap[productId];
         return {
           name: product?.name || `Product #${productId}`,
           quantity: qty,
         };
       });
-  }, [sales, products]);
+  }, [sales, productMap]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 bg-gray-50">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">📊 Business Dashboard</h1>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         <KpiCard icon="💰" title="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} color="green" />
         <KpiCard icon="📦" title="Total Products" value={products.length} color="blue" />
@@ -57,8 +62,7 @@ const DashboardPage = () => {
       <div className="mt-10">
         <SalesChartsPage />
       </div>
-      
-      {/* Top Selling Products List */}
+
       <div className="bg-white rounded shadow p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-700 mb-4">🏆 Top 10 Selling Products</h2>
         <ul className="divide-y divide-gray-200">
